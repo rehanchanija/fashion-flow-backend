@@ -7,7 +7,7 @@ async function bootstrap() {
   
   // Enable CORS
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: ['http://localhost:3000', 'http://localhost:3002'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -16,11 +16,12 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,
     transform: true,
+    transformOptions: { enableImplicitConversion: true },
   }));
 
   // Set global prefix (optional)
   // app.setGlobalPrefix('api');
 
-  await app.listen(3001);
+  await app.listen(3003);
 }
 bootstrap();

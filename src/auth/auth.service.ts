@@ -4,13 +4,15 @@ import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Admin, AdminDocument } from './schemas/admin.schema';
-import { CreateAdminDto, LoginAdminDto } from './dto/auth.dto';
+import { CreateAdminDto, LoginAdminDto, CreateUserDto, UpdateUserDto } from './dto/auth.dto';
 import { UnauthorizedException } from '@nestjs/common';
+import { User, UserDocument } from '../users/schemas/user.schema';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(Admin.name) private adminModel: Model<AdminDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     private jwtService: JwtService,
   ) {}
 
@@ -19,28 +21,80 @@ export class AuthService {
     const createdAdmin = new this.adminModel({
       ...createAdminDto,
       password: hashedPassword,
+      role: 'Admin'  // Changed to capital 'Admin'
     });
     return createdAdmin.save();
   }
 
-  async validateAdmin(loginAdminDto: LoginAdminDto): Promise<{ access_token: string }> {
-    const admin = await this.adminModel.findOne({ email: loginAdminDto.email });
-    if (!admin) {
+  async createUser(createUserDto: CreateUserDto): Promise<User> {
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    const createdUser = new this.userModel({
+      ...createUserDto,
+      password: hashedPassword,
+      role: 'user'
+    });
+    return createdUser.save();
+  }
+
+  async validateLogin(loginDto: LoginAdminDto): Promise<{ access_token: string; role: string }> {
+    // First try to find admin account
+    const admin = await this.adminModel.findOne({ 
+      email: loginDto.email,
+      role: 'Admin'  // Check for exact role match
+    });
+    
+    // If not found in admin, try user collection
+    const user = !admin ? await this.userModel.findOne({ email: loginDto.email }) : null;
+
+    const account = admin || user;
+    if (!account) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      loginAdminDto.password,
-      admin.password,
-    );
-
+    const isPasswordValid = await bcrypt.compare(loginDto.password, account.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { email: admin.email, sub: admin._id };
+    const payload = { email: account.email, sub: account._id, role: account.role };
     return {
       access_token: this.jwtService.sign(payload),
+      role: account.role
     };
   }
+
+
+
+  async updateUserProfile(email: string, updateUserDto: UpdateUserDto): Promise<any> {
+    // If password is provided, hash it
+    if (updateUserDto.password) {
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+    }
+
+    const user = await this.userModel.findOneAndUpdate(
+      { email },
+      { $set: updateUserDto },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return user;
+  }
+
+  async getAllUsers(): Promise<any> {
+    return this.userModel.find().select('-password');
+  }
+  async deleteUser(email: string): Promise<any> {
+
+    const user = await this.userModel.findOneAndDelete({ email });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    return { message: 'User deleted successfully' };
+    }
 }
+  
+

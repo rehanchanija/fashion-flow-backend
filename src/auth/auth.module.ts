@@ -6,11 +6,15 @@ import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { Admin, AdminSchema } from './schemas/admin.schema';
+import { User, UserSchema } from '../users/schemas/user.schema';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Admin.name, schema: AdminSchema }]),
+    MongooseModule.forFeature([
+      { name: Admin.name, schema: AdminSchema },
+      { name: User.name, schema: UserSchema }
+    ]),
     PassportModule,
     JwtModule.registerAsync({
       useFactory: async (configService: ConfigService) => ({

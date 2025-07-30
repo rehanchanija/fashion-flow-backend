@@ -16,3 +16,27 @@ export class LoginAdminDto {
   @IsString()
   password: string;
 }
+
+export class CreateUserDto {
+  @IsString()
+  name: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(6)
+  password: string;
+}
+
+export class UpdateUserDto {
+  @IsString()
+  name?: string;
+
+  @IsEmail()
+  email?: string;
+
+  @IsString()
+  @MinLength(6)
+  password?: string;
+}

@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Admin, AdminDocument } from './schemas/admin.schema';
-import { CreateAdminDto, LoginAdminDto, CreateUserDto, UpdateUserDto } from './dto/auth.dto';
+import { CreateAdminDto, LoginAdminDto, CreateUserDto } from './dto/auth.dto';
 import { UnauthorizedException } from '@nestjs/common';
 import { User, UserDocument } from '../users/schemas/user.schema';
 
@@ -21,7 +21,7 @@ export class AuthService {
     const createdAdmin = new this.adminModel({
       ...createAdminDto,
       password: hashedPassword,
-      role: 'Admin'  // Changed to capital 'Admin'
+      role: 'admin'
     });
     return createdAdmin.save();
   }
@@ -37,14 +37,9 @@ export class AuthService {
   }
 
   async validateLogin(loginDto: LoginAdminDto): Promise<{ access_token: string; role: string }> {
-    // First try to find admin account
-    const admin = await this.adminModel.findOne({ 
-      email: loginDto.email,
-      role: 'Admin'  // Check for exact role match
-    });
-    
-    // If not found in admin, try user collection
-    const user = !admin ? await this.userModel.findOne({ email: loginDto.email }) : null;
+    // Try to find user in both admin and user collections
+    const admin = await this.adminModel.findOne({ email: loginDto.email });
+    const user = await this.userModel.findOne({ email: loginDto.email });
 
     const account = admin || user;
     if (!account) {
@@ -61,40 +56,5 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
       role: account.role
     };
-  }
 
-
-
-  async updateUserProfile(email: string, updateUserDto: UpdateUserDto): Promise<any> {
-    // If password is provided, hash it
-    if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
-    }
-
-    const user = await this.userModel.findOneAndUpdate(
-      { email },
-      { $set: updateUserDto },
-      { new: true }
-    ).select('-password');
-
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    return user;
-  }
-
-  async getAllUsers(): Promise<any> {
-    return this.userModel.find().select('-password');
-  }
-  async deleteUser(email: string): Promise<any> {
-
-    const user = await this.userModel.findOneAndDelete({ email });
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-    return { message: 'User deleted successfully' };
-    }
-}
-  
-
+  }}

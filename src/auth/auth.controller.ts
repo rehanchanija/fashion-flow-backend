@@ -17,9 +17,5 @@ export class AuthController {
     return this.authService.validateLogin(loginDto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Post('create-user')
-  async createUser(@Body() createUserDto: CreateUserDto) {
-    return this.authService.createUser(createUserDto);
-  }
+ 
 }

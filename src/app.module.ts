@@ -4,6 +4,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { ProductModule } from './products/product.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -19,7 +21,9 @@ import configuration from './config/configuration';
       }),
       inject: [ConfigService],
     }),
-    AuthModule
+    AuthModule,
+    ProductModule,
+    CloudinaryModule
   ],
   controllers: [AppController],
   providers: [AppService],
